@@ -4,63 +4,102 @@ import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 const canales = JSON.parse(readFileSync('./canales_guild.json', 'utf-8'))
+const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
-})
-
-const TOKEN = process.env.TOKEN
+const { TOKEN, GUILD_ID } = process.env
 const ROOT_FOLDER = 'C:\\Users\\felix\\Desktop\\pruebas'
-const GUILD_ID = process.env.GUILD_ID
 
 const obtenerMarca = (nombre) => {
   const lower = nombre.toLowerCase()
+  if (lower.includes('pcup') || lower.includes('porschecup')) return 'porsche-cup'
   if (lower.includes('c8') || lower.includes('corvette')) return 'corvette'
   if (lower.includes('911') || lower.includes('porsche') || lower.includes('rsr')) return 'porsche'
-  if (lower.includes('m8') || lower.includes('bmw')) return 'bmw'
+  if (lower.includes('m8') || lower.includes('bmw') || lower.includes('m2') || lower.includes('m4')) return 'bmw'
   if (lower.includes('488')) return 'ferrari'
-  if (lower.includes('ford')) return 'ford'
-  if (lower.includes('pcup')) return 'porsche-cup'
-  if (lower.includes('mx5')) return 'advanced-mazda'
-  return nombre
+  if (lower.includes('ford') || lower.includes('mustang')) return 'ford'
+  if (lower.includes('mx5')) return 'mazda'
+  if (lower.includes('newhampshire') || lower.includes('xfinity')) return 'clase-a-b-c'
+  if (lower.includes('f3')) return 'dallara-f3'
+  if (lower.includes('sfl')) return 'formula-light'
+  if (lower.includes('superformula') || lower.includes('sf23')) return 'super-formula'
+  if (lower.includes('ff1600')) return 'ray-1600'
+  if (lower.includes('gr86') || lower.includes('gt86')) return 'toyota'
+  if (lower.includes('lmp3')) return 'lmp3'
+  if (lower.includes('aston') || lower.includes('vantage')) return 'aston-gt4'
+  if (lower.includes('570')) return 'mclaren-gt4'
+  if (lower.includes('merc')) return 'mercedes-gt4'
+  if (lower.includes('718')) return 'porsche-gt4'
+  return null
 }
 
-const obtenerCanal = (serie, marca) => {
-  const coches = canales[serie]
-  if (!coches) return null
-  return coches.find(c => c.nombre === marca)?.id
+const obtenerCanal = (serie, marca) => canales[serie]?.find(c => c.nombre === marca)?.id
+
+const obtenerProveedor = (nombre) => {
+  const lower = nombre.toLowerCase()
+  if (lower.includes('gng')) return 'GNG'
+  if (lower.includes('p1doks')) return 'P1doks'
+  if (lower.includes('vrs')) return 'VRS'
+  if (lower.includes('hymo')) return 'HYMO'
+  return 'elemao'
 }
 
-const unzip = (filePath) => {
+const unzip = (filePath, folder) => {
   const zip = new AdmZip(filePath)
-  zip.extractAllTo(ROOT_FOLDER, true)
-  console.log(`✅ Descomprimido: ${filePath}`)
+  zip.extractAllTo(folder, true)
+  console.log(`✅ Descomprimido: ${filePath.split('\\').pop()}`)
 }
 
-async function organizeSetups (serie, organization) {
+const zip = (setups, folder, canalId) => {
+  const setupsZip = []
+  for (const [proveedor, archivos] of Object.entries(setups)) {
+    const zip = new AdmZip()
+
+    archivos.forEach(archivo => {
+      zip.addLocalFile(archivo)
+    })
+
+    const path = join(ROOT_FOLDER, folder, `${proveedor}-${canalId}.zip`)
+    setupsZip.push(path)
+    zip.writeZip(path)
+
+    console.log(`✅ Comprimido: ${folder}-${proveedor}-${canalId}.zip`)
+  }
+  return setupsZip
+}
+
+async function organizeSetups (serie, organization = {}) {
   const folder = join(ROOT_FOLDER, serie)
   const files = readdirSync(folder, { withFileTypes: true })
 
-  files.filter(f => f.name.endsWith('.zip')).forEach(f => unzip(join(folder, f.name)))
+  files.filter(f => f.name.endsWith('.zip')).forEach(f => unzip(join(folder, f.name), folder))
 
-  files.filter(f => f.name.endsWith('.sto'))
-    .forEach(async file => {
-      const name = file.name
-      const filePath = join(folder, name)
+  const filesUpdated = readdirSync(folder, { withFileTypes: true })
 
-      const coche = obtenerMarca(name)
-      const canal = obtenerCanal(serie, coche)
+  for (const file of filesUpdated.filter(f => f.name.endsWith('.sto') || f.name.endsWith(' .sto'))) {
+    const name = file.name
+    const filePath = join(folder, name)
 
-      if (!canal) {
-        console.warn(`⚠️ No se encontró canal para el coche: ${coche} (archivo: ${name})`)
-        return
-      }
+    const coche = obtenerMarca(name) ?? ((serie === 'CARROZADOS' || serie === 'SIM LAB') ? 'mazda' : null)
+    const proveedor = obtenerProveedor(name)
+    const canal = obtenerCanal(serie, coche)
 
-      if (!organization[canal]) {
-        organization[canal] = []
-      }
-      organization[canal].push(filePath)
-    })
+    if (!canal) {
+      console.warn(`⚠️ No se encontró canal para el coche: ${coche} (archivo: ${name})`)
+      continue
+    }
+
+    if (!organization[canal]) {
+      organization[canal] = {}
+    }
+
+    if (!organization[canal][proveedor]) {
+      organization[canal][proveedor] = []
+    }
+
+    organization[canal][proveedor].push(filePath)
+  }
+
+  return organization
 }
 
 const uploadSetups = async (guild, organization) => {
@@ -71,18 +110,14 @@ const uploadSetups = async (guild, organization) => {
       continue
     }
 
-    const LOTE_MAX = 10
-    for (let i = 0; i < archivos.length; i += LOTE_MAX) {
-      const lote = archivos.slice(i, i + LOTE_MAX)
-      try {
-        await channel.send({
-          files: lote
-        })
-        console.log(`✅ Subidos: ${lote.map(f => f.split('\\').pop()).join(', ')} al canal ${channel.name}`)
-      } catch (err) {
-        console.error(`❌ Error al subir ${lote.map(f => f.split('\\').pop()).join(', ')}:`, err.message)
-      }
-    }
+    const folder = Object.values(archivos)[0][0].split('\\').at(-2)
+    const setupsZip = zip(archivos, folder, canalId.slice(-4))
+
+    // await channel.send({
+    // files: setupsZip
+    // })
+
+    console.log(`✅ Subidos: ${setupsZip.join(', ')} al canal ${channel.name}`)
   }
 }
 
@@ -96,9 +131,17 @@ client.once('clientReady', async () => {
     return
   }
 
-  const organization = {}
-  await organizeSetups('GTE', organization)
-  await organizeSetups('CARROZADOS', organization)
+  const [gte, carrozados, nascar, formulas, simLab, sportsCar] = await Promise.all([
+    organizeSetups('GTE', {}),
+    organizeSetups('CARROZADOS', {}),
+    organizeSetups('NASCAR', {}),
+    organizeSetups('FORMULAS', {}),
+    organizeSetups('SIM LAB', {}),
+    organizeSetups('Sports Car', {})
+  ])
+
+  const organization = { ...gte, ...carrozados, ...nascar, ...formulas, ...simLab, ...sportsCar }
+
   await uploadSetups(guild, organization)
 
   client.destroy()
