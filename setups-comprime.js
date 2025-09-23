@@ -5,7 +5,7 @@ import { join } from 'path'
 const canales = JSON.parse(readFileSync('./canales_guild.json', 'utf-8'))
 const { semana } = JSON.parse(readFileSync('./config.json', 'utf-8'))
 
-const { GUILD_ID, ROOT_FOLDER } = process.env
+const { ROOT_FOLDER } = process.env
 const ROOT_FOLDER_FINAL = join(ROOT_FOLDER, semana)
 
 const COCHES_PATTERNS = {
@@ -154,7 +154,7 @@ async function organizeSetups (serie, organization = {}) {
 const uploadSetups = async (organization) => {
   const uploadPromises = Object.entries(organization).map(async ([canalId, archivos]) => {
     const folder = Object.values(archivos)[0][0].split('\\').at(-2)
-    zip(archivos, folder, canalId.slice(-4))
+    zip(archivos, folder, canalId.slice(-5))
   })
 
   await Promise.all(uploadPromises)

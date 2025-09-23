@@ -4,7 +4,7 @@ import { mkdir, rename } from 'fs/promises'
 import { join } from 'path'
 
 const { semana, series } = JSON.parse(readFileSync('./config.json', 'utf-8'))
-const { ROOT_FOLDER2 } = process.env
+const { ROOT_FOLDER } = process.env
 
 const SERIES_PATTERNS = {
   IMSA: /imsa|gtp|lmdh|p217|lmp2|mhv8/i,
@@ -56,7 +56,7 @@ const newFolder = async (serieFolder) => {
 }
 
 const organizeSetups = async () => {
-  const folder = join(ROOT_FOLDER2)
+  const folder = join(ROOT_FOLDER)
   const files = readdirSync(folder, { withFileTypes: true })
 
   const zipFiles = files.filter(f => f.name.endsWith('.zip'))
@@ -73,7 +73,7 @@ const organizeSetups = async () => {
 
   const movePromises = stoFiles.map(async file => {
     const name = file.name
-    const filePath = join(file.path, name)
+    const filePath = join(file.path || file.parentPath, name)
     const serie = obtenerSerie(name)
 
     if (!serie) {
