@@ -1,13 +1,11 @@
 import AdmZip from 'adm-zip'
-import { Client, GatewayIntentBits } from 'discord.js'
 import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 const canales = JSON.parse(readFileSync('./canales_guild.json', 'utf-8'))
 const { semana } = JSON.parse(readFileSync('./config.json', 'utf-8'))
-const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 
-const { TOKEN, GUILD_ID, ROOT_FOLDER } = process.env
+const { GUILD_ID, ROOT_FOLDER } = process.env
 const ROOT_FOLDER_FINAL = join(ROOT_FOLDER, semana)
 
 const COCHES_PATTERNS = {
@@ -107,14 +105,7 @@ const obtenerProveedor = (nombre) => {
   return 'GNG'
 }
 
-const unzip = (filePath, folder) => {
-  const zip = new AdmZip(filePath)
-  zip.extractAllTo(folder, true)
-  console.log(`✅ Descomprimido: ${filePath.split('\\').pop()}`)
-}
-
 const zip = (setups, folder, canalId) => {
-  const setupsZip = []
   for (const [proveedor, archivos] of Object.entries(setups)) {
     const zip = new AdmZip()
 
@@ -123,12 +114,10 @@ const zip = (setups, folder, canalId) => {
     })
 
     const path = join(ROOT_FOLDER_FINAL, folder, `${proveedor}-${canalId}.zip`)
-    setupsZip.push(path)
     zip.writeZip(path)
 
     console.log(`✅ Comprimido: ${folder}-${proveedor}-${canalId}.zip`)
   }
-  return setupsZip
 }
 
 async function organizeSetups (serie, organization = {}) {
@@ -162,38 +151,16 @@ async function organizeSetups (serie, organization = {}) {
   return organization
 }
 
-const uploadSetups = async (guild, organization) => {
+const uploadSetups = async (organization) => {
   const uploadPromises = Object.entries(organization).map(async ([canalId, archivos]) => {
-    const channel = guild.channels.cache.get(canalId)
-    if (!channel) {
-      console.warn(`⚠️ No se encontró el canal con ID: ${canalId}`)
-      return
-    }
-
     const folder = Object.values(archivos)[0][0].split('\\').at(-2)
-    const setupsZip = zip(archivos, folder, canalId.slice(-4))
-
-    // await channel.send({
-    // content: Array.from({ length: 100 }, () => semana).join(' '),
-    // files: setupsZip
-    // })
-
-    console.log(`✅ Subidos: ${setupsZip.join(', ')} al canal ${channel.name}`)
+    zip(archivos, folder, canalId.slice(-4))
   })
 
   await Promise.all(uploadPromises)
 }
 
-client.once('clientReady', async () => {
-  console.log(`✅ Bot conectado como ${client.user.tag}`)
-
-  const guild = client.guilds.cache.get(GUILD_ID)
-  if (!guild) {
-    console.error('❌ No se encontró el servidor. Revisa el GUILD_ID.')
-    client.destroy()
-    return
-  }
-
+const comprimirSetups = async () => {
   const [gte, carrozados, nascar, formulas, simLab, sportsCar, gtSprint, imsa] = await Promise.all([
     organizeSetups('GTE', {}),
     organizeSetups('CARROZADOS', {}),
@@ -207,9 +174,7 @@ client.once('clientReady', async () => {
 
   const organization = { ...gte, ...carrozados, ...nascar, ...formulas, ...simLab, ...sportsCar, ...gtSprint, ...imsa }
 
-  await uploadSetups(guild, organization)
+  await uploadSetups(organization)
+}
 
-  client.destroy()
-})
-
-client.login(TOKEN)
+comprimirSetups()
