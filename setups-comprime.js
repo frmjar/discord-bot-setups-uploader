@@ -20,7 +20,7 @@ const COCHES_PATTERNS = {
   'lamborghini-gt3': /lambo|lgt3|huracangt3/i,
   'ferrari-gt3': /ferrari|296/i,
   'porsche-gt3': /porsche|992|gt3r/i,
-  'corvette-gt3': /corvette|z06gt3|z06/i,
+  'corvette-gt3': /corvette|z06gt3|z06|cv/i,
   // LMDh/GTP
   'porsche-lmdh': /963gtp|963|porschegtp/i,
   'cadillac-lmdh': /caddy|cadillacgtp/i,
@@ -40,13 +40,13 @@ const COCHES_PATTERNS = {
   // GTE
   ferrari: /488|ferrarigte/i,
   ford: /fordgte/i,
-  corvette: /c8|corvettegte/i,
+  corvette: /c8|corvettegte|cv/i,
   porsche: /911|rsr|porschegte/i,
   bmw: /m2|m8|bmwgte/i,
   // Fórmulas
   'dallara-f3': /f3/i,
   'formula-lights': /superformulalight|sfl/i,
-  'super-formula': /superformula|sf23/i,
+  'super-formula': /superformula|sf23|sf/i,
   'ray-1600': /ff1600/i,
   // Otros
   mazda: /mx5/i,

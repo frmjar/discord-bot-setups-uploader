@@ -12,7 +12,7 @@ const SERIES_PATTERNS = {
   'GT SPRINT': /gt sprint|gtsp|gts|sprint/i,
   'Sports Car': /718|gt4|lmp3|570/i,
   NASCAR: /xfinity|newhampshire|classa|copen/i,
-  FORMULAS: /formula|f3|sfl|sf23|ff1600/i,
+  FORMULAS: /formula|f3|sfl|sf23|sf|ff1600/i,
   CARROZADOS: /pcup|porschecup/i,
   'SIM LAB': /m2|gt86|gr86/i
 }
