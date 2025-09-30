@@ -3,10 +3,8 @@ import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 const canales = JSON.parse(readFileSync('./canales_guild.json', 'utf-8'))
-const { semana } = JSON.parse(readFileSync('./config.json', 'utf-8'))
 
 const { ROOT_FOLDER } = process.env
-const ROOT_FOLDER_FINAL = join(ROOT_FOLDER, semana)
 
 const COCHES_PATTERNS = {
   // GT3
@@ -113,7 +111,7 @@ const zip = (setups, folder, canalId) => {
       zip.addLocalFile(archivo)
     })
 
-    const path = join(ROOT_FOLDER_FINAL, folder, `${proveedor}-${canalId}.zip`)
+    const path = join(ROOT_FOLDER, folder, `${proveedor}-${canalId}.zip`)
     zip.writeZip(path)
 
     console.log(`✅ Comprimido: ${folder}-${proveedor}-${canalId}.zip`)
@@ -121,7 +119,7 @@ const zip = (setups, folder, canalId) => {
 }
 
 async function organizeSetups (serie, organization = {}) {
-  const folder = join(ROOT_FOLDER_FINAL, serie)
+  const folder = join(ROOT_FOLDER, serie)
   const files = readdirSync(folder, { withFileTypes: true })
 
   for (const file of files.filter(f => f.name.endsWith('.sto') || f.name.endsWith(' .sto'))) {

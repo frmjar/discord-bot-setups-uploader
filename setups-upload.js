@@ -3,11 +3,9 @@ import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 const canales = JSON.parse(readFileSync('./canales_guild.json', 'utf-8'))
-const { semana } = JSON.parse(readFileSync('./config.json', 'utf-8'))
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 
-const { TOKEN, GUILD_ID, ROOT_FOLDER } = process.env
-const ROOT_FOLDER_FINAL = join(ROOT_FOLDER, semana)
+const { TOKEN, GUILD_ID, ROOT_FOLDER, MENSAJE } = process.env
 
 const mapChannelsId = (mappedChannels, id, folder) => {
   const carsId = canales[folder]
@@ -23,7 +21,7 @@ const mapChannelsId = (mappedChannels, id, folder) => {
 }
 
 const uploadSetups = async (guild, folder) => {
-  const filesZip = readdirSync(join(ROOT_FOLDER_FINAL, folder), { withFileTypes: true })
+  const filesZip = readdirSync(join(ROOT_FOLDER, folder), { withFileTypes: true })
     .filter(file => file.isFile() && file.name.endsWith('.zip'))
 
   const mappedChannels = new Map()
@@ -49,7 +47,7 @@ const uploadSetups = async (guild, folder) => {
     }
 
     await channel.send({
-      content: Array.from({ length: 100 }, () => semana).join(' '),
+      content: Array.from({ length: 100 }, () => MENSAJE).join(' '),
       files: setupsZip
     })
 
